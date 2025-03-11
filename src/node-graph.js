@@ -222,15 +222,43 @@ class NodeGraph {
    * Remove a node from the graph
    * 
    * @param {number} nodeId - ID of the node to remove
+   * @returns {Object} - Removed node and its connections
    */
   removeNode(nodeId) {
+    // Check if this is a special node type that shouldn't be removed
+    const node = this.nodes.find(n => n.id === nodeId);
+    if (!node) {
+      console.warn(`Node ${nodeId} not found`);
+      return { node: null, connections: [] };
+    }
+    
+    // Don't allow removing the output node
+    if (node.type === 'terrain-output') {
+      console.warn("Cannot remove the terrain output node");
+      return { node: null, connections: [] };
+    }
+    
+    // Find all connections to be removed
+    const connectionsToRemove = this.connections.filter(
+      conn => conn.from.startsWith(nodeId + '_') || conn.to.startsWith(nodeId + '_')
+    );
+    
+    // Track all connections that will be removed
+    const removedConnections = [...connectionsToRemove];
+    
     // Remove connections for the node
     this.connections = this.connections.filter(
       conn => !conn.from.startsWith(nodeId + '_') && !conn.to.startsWith(nodeId + '_')
     );
     
+    // Take a copy of the node before removing it
+    const removedNode = { ...node };
+    
     // Remove the node
     this.nodes = this.nodes.filter(node => node.id !== nodeId);
+    
+    // Return the removed node and connections for possible undo functionality
+    return { node: removedNode, connections: removedConnections };
   }
   
   /**
@@ -238,6 +266,7 @@ class NodeGraph {
    * 
    * @param {string} fromPortId - ID of the output port
    * @param {string} toPortId - ID of the input port
+   * @returns {boolean} - Whether the connection was added successfully
    */
   addConnection(fromPortId, toPortId) {
     // Check if connection already exists
@@ -247,17 +276,130 @@ class NodeGraph {
       this.connections = this.connections.filter(conn => conn.to !== toPortId);
     }
     
+    // Check if this connection would create a cycle
+    if (this.wouldCreateCycle(fromPortId, toPortId)) {
+      console.error("Cannot add connection: would create a cycle in the graph");
+      return false;
+    }
+    
     // Add new connection
     this.connections.push({ from: fromPortId, to: toPortId });
+    return true;
+  }
+  
+  /**
+   * Check if adding a connection would create a cycle in the graph
+   * 
+   * @param {string} fromPortId - ID of the output port
+   * @param {string} toPortId - ID of the input port
+   * @returns {boolean} - Whether adding the connection would create a cycle
+   */
+  wouldCreateCycle(fromPortId, toPortId) {
+    // Get node IDs from port IDs
+    const fromNodeId = this.getNodeIdFromPortId(fromPortId);
+    const toNodeId = this.getNodeIdFromPortId(toPortId);
+    
+    // If either node doesn't exist, there can't be a cycle
+    if (!fromNodeId || !toNodeId) return false;
+    
+    // If they're the same node, it's a self-loop
+    if (fromNodeId === toNodeId) return true;
+    
+    // Check if there's a path from toNode to fromNode (which would create a cycle)
+    return this.hasPath(toNodeId, fromNodeId, new Set());
+  }
+  
+  /**
+   * Get the node ID from a port ID
+   * 
+   * @param {string} portId - ID of the port
+   * @returns {number|null} - ID of the node or null if not found
+   */
+  getNodeIdFromPortId(portId) {
+    const parts = portId.split('_');
+    if (parts.length < 2) return null;
+    
+    const nodeId = parseInt(parts[0], 10);
+    return this.nodes.some(node => node.id === nodeId) ? nodeId : null;
+  }
+  
+  /**
+   * Check if there's a path from one node to another
+   * 
+   * @param {number} startNodeId - ID of the start node
+   * @param {number} endNodeId - ID of the end node
+   * @param {Set} visited - Set of visited node IDs
+   * @returns {boolean} - Whether there's a path from start to end
+   */
+  hasPath(startNodeId, endNodeId, visited) {
+    // If we've already visited this node, skip it to avoid infinite loops
+    if (visited.has(startNodeId)) return false;
+    
+    // Mark this node as visited
+    visited.add(startNodeId);
+    
+    // Find all outgoing connections from this node
+    const outgoingConnections = this.connections.filter(conn => {
+      const fromNodeId = this.getNodeIdFromPortId(conn.from);
+      return fromNodeId === startNodeId;
+    });
+    
+    // Check each outgoing connection
+    for (const conn of outgoingConnections) {
+      const toNodeId = this.getNodeIdFromPortId(conn.to);
+      
+      // If this connection goes to the end node, we found a path
+      if (toNodeId === endNodeId) return true;
+      
+      // Otherwise, check if there's a path from this node to the end node
+      if (this.hasPath(toNodeId, endNodeId, visited)) return true;
+    }
+    
+    // No path found
+    return false;
   }
   
   /**
    * Remove a connection
    * 
-   * @param {number} connectionId - Index of the connection to remove
+   * @param {Object|number} connection - Connection object or index to remove
    */
-  removeConnection(connectionId) {
-    this.connections = this.connections.filter((_, index) => index !== connectionId);
+  removeConnection(connection) {
+    if (typeof connection === 'number') {
+      // Legacy support for removing by index
+      this.connections = this.connections.filter((_, index) => index !== connection);
+    } else if (connection.from && connection.to) {
+      // Remove by connection properties
+      this.connections = this.connections.filter(
+        conn => !(conn.from === connection.from && conn.to === connection.to)
+      );
+    } else {
+      console.warn("Invalid connection specification for removal");
+    }
+  }
+  
+  /**
+   * Remove all connections to a specific port
+   * 
+   * @param {string} portId - ID of the port
+   * @returns {Array} - Removed connections
+   */
+  removeConnectionsToPort(portId) {
+    const connectionsToRemove = this.connections.filter(conn => conn.to === portId);
+    this.connections = this.connections.filter(conn => conn.to !== portId);
+    return connectionsToRemove;
+  }
+  
+  /**
+   * Remove all connections from a specific port
+   * 
+   * @param {string} portId - ID of the port
+   * @returns {Array} - Removed connections
+   */
+  removeConnectionsFromPort(portId) {
+    const connectionsToRemove = this.connections.filter(conn => conn.from === portId);
+    this.connections = this.connections.filter(conn => conn.from !== portId);
+    return connectionsToRemove;
   }
   
   /**
@@ -280,26 +422,73 @@ class NodeGraph {
    * @param {number} x - X coordinate
    * @param {number} y - Y coordinate
    * @param {number} z - Z coordinate
+   * @param {Set} [visitedPorts=new Set()] - Set of ports already visited to detect cycles
+   * @param {number} [depth=0] - Current recursion depth
    * @returns {any} - Output value of the port
    */
-  evaluatePort(portId, x, y, z) {
+  evaluatePort(portId, x, y, z, visitedPorts = new Set(), depth = 0) {
+    // Check for excessive recursion depth to prevent stack overflow
+    const MAX_RECURSION_DEPTH = 100;
+    if (depth > MAX_RECURSION_DEPTH) {
+      console.error(`Maximum recursion depth exceeded when evaluating port ${portId}. Possible cycle in graph.`);
+      return 0;
+    }
+    
+    // Check for cycles
+    if (visitedPorts.has(portId)) {
+      console.error(`Cycle detected when evaluating port ${portId}`);
+      return 0;
+    }
+    
+    // Add this port to visited ports
+    visitedPorts.add(portId);
+    
     // Find the node and port
     for (const node of this.nodes) {
       // Check if this is an output port of the node
       const output = node.outputs.find(out => out.id === portId);
       if (output) {
-        return this.evaluateNode(node, x, y, z, output);
+        // Remove this port from visited ports before recursing into new node evaluation
+        visitedPorts.delete(portId);
+        return this.evaluateNode(node, x, y, z, output, visitedPorts, depth + 1);
       }
     }
     
     // If not found directly, check if it's connected to another port
     const conn = this.connections.find(c => c.to === portId);
     if (conn) {
-      return this.evaluatePort(conn.from, x, y, z);
+      return this.evaluatePort(conn.from, x, y, z, visitedPorts, depth + 1);
     }
     
-    // Default values if not connected
+    // Default values based on port type
+    const port = this.findPort(portId);
+    if (port) {
+      if (port.type === 'terrain') {
+        return { type: 'air', color: '#aaaaff' };
+      }
+    }
+    
+    // Default numeric value if not connected
     return 0;
+  }
+  
+  /**
+   * Find a port by ID
+   * 
+   * @param {string} portId - ID of the port to find
+   * @returns {Object|null} - Port or null if not found
+   */
+  findPort(portId) {
+    for (const node of this.nodes) {
+      // Check inputs
+      const input = node.inputs.find(inp => inp.id === portId);
+      if (input) return input;
+      
+      // Check outputs
+      const output = node.outputs.find(out => out.id === portId);
+      if (output) return output;
+    }
+    return null;
   }
   
   /**
@@ -310,9 +499,11 @@ class NodeGraph {
    * @param {number} y - Y coordinate
    * @param {number} z - Z coordinate
    * @param {Object} specificOutput - Specific output port to evaluate
+   * @param {Set} [visitedPorts=new Set()] - Set of ports already visited to detect cycles
+   * @param {number} [depth=0] - Current recursion depth
    * @returns {any} - Output value
    */
-  evaluateNode(node, x, y, z, specificOutput = null) {
+  evaluateNode(node, x, y, z, specificOutput = null, visitedPorts = new Set(), depth = 0) {
     switch (node.type) {
       case 'position':
         if (specificOutput) {
@@ -369,46 +560,46 @@ class NodeGraph {
       }
       
       case 'lerp': {
-        const a = this.evaluatePort(node.inputs[0].id, x, y, z);
-        const b = this.evaluatePort(node.inputs[1].id, x, y, z);
-        const factor = this.evaluatePort(node.inputs[2].id, x, y, z);
+        const a = this.evaluatePort(node.inputs[0].id, x, y, z, visitedPorts, depth);
+        const b = this.evaluatePort(node.inputs[1].id, x, y, z, visitedPorts, depth);
+        const factor = this.evaluatePort(node.inputs[2].id, x, y, z, visitedPorts, depth);
         return this.lerp(a, b, factor, node.params.power);
       }
       
       case 'coserp': {
-        const a = this.evaluatePort(node.inputs[0].id, x, y, z);
-        const b = this.evaluatePort(node.inputs[1].id, x, y, z);
-        const factor = this.evaluatePort(node.inputs[2].id, x, y, z);
+        const a = this.evaluatePort(node.inputs[0].id, x, y, z, visitedPorts, depth);
+        const b = this.evaluatePort(node.inputs[1].id, x, y, z, visitedPorts, depth);
+        const factor = this.evaluatePort(node.inputs[2].id, x, y, z, visitedPorts, depth);
         return this.coserp(a, b, factor);
       }
       
       case 'add': {
-        const a = this.evaluatePort(node.inputs[0].id, x, y, z);
-        const b = this.evaluatePort(node.inputs[1].id, x, y, z);
+        const a = this.evaluatePort(node.inputs[0].id, x, y, z, visitedPorts, depth);
+        const b = this.evaluatePort(node.inputs[1].id, x, y, z, visitedPorts, depth);
         return a + b;
       }
       
       case 'multiply': {
-        const a = this.evaluatePort(node.inputs[0].id, x, y, z);
-        const b = this.evaluatePort(node.inputs[1].id, x, y, z);
+        const a = this.evaluatePort(node.inputs[0].id, x, y, z, visitedPorts, depth);
+        const b = this.evaluatePort(node.inputs[1].id, x, y, z, visitedPorts, depth);
         return a * b;
       }
       
       case 'subtract': {
-        const a = this.evaluatePort(node.inputs[0].id, x, y, z);
-        const b = this.evaluatePort(node.inputs[1].id, x, y, z);
+        const a = this.evaluatePort(node.inputs[0].id, x, y, z, visitedPorts, depth);
+        const b = this.evaluatePort(node.inputs[1].id, x, y, z, visitedPorts, depth);
         return a - b;
       }
       
       case 'abs': {
-        const value = this.evaluatePort(node.inputs[0].id, x, y, z);
+        const value = this.evaluatePort(node.inputs[0].id, x, y, z, visitedPorts, depth);
         return Math.abs(value);
       }
       
       case 'gaussian': {
-        const px = this.evaluatePort(node.inputs[0].id, x, y, z);
-        const py = this.evaluatePort(node.inputs[1].id, x, y, z);
-        const pz = this.evaluatePort(node.inputs[2].id, x, y, z);
+        const px = this.evaluatePort(node.inputs[0].id, x, y, z, visitedPorts, depth);
+        const py = this.evaluatePort(node.inputs[1].id, x, y, z, visitedPorts, depth);
+        const pz = this.evaluatePort(node.inputs[2].id, x, y, z, visitedPorts, depth);
         
         const dx = px - node.params.centerX;
         const dy = py - node.params.centerY;
@@ -421,7 +612,7 @@ class NodeGraph {
       }
       
       case 'remap': {
-        const value = this.evaluatePort(node.inputs[0].id, x, y, z);
+        const value = this.evaluatePort(node.inputs[0].id, x, y, z, visitedPorts, depth);
         return this.remap(
           value, 
           node.params.inMin, 
@@ -432,9 +623,9 @@ class NodeGraph {
       }
       
       case 'distance': {
-        const px = this.evaluatePort(node.inputs[0].id, x, y, z);
-        const py = this.evaluatePort(node.inputs[1].id, x, y, z);
-        const pz = this.evaluatePort(node.inputs[2].id, x, y, z);
+        const px = this.evaluatePort(node.inputs[0].id, x, y, z, visitedPorts, depth);
+        const py = this.evaluatePort(node.inputs[1].id, x, y, z, visitedPorts, depth);
+        const pz = this.evaluatePort(node.inputs[2].id, x, y, z, visitedPorts, depth);
         
         const dx = px - node.params.pointX;
         const dy = py - node.params.pointY;
@@ -444,8 +635,8 @@ class NodeGraph {
       }
       
       case 'compare': {
-        const a = this.evaluatePort(node.inputs[0].id, x, y, z);
-        const b = this.evaluatePort(node.inputs[1].id, x, y, z);
+        const a = this.evaluatePort(node.inputs[0].id, x, y, z, visitedPorts, depth);
+        const b = this.evaluatePort(node.inputs[1].id, x, y, z, visitedPorts, depth);
         
         let result = false;
         switch (node.params.operator) {
@@ -463,14 +654,14 @@ class NodeGraph {
             // Check if there's a connection to the "If True" port
             const trueConn = this.connections.find(c => c.to === node.inputs[2].id);
             if (trueConn) {
-              return this.evaluatePort(trueConn.from, x, y, z);
+              return this.evaluatePort(trueConn.from, x, y, z, visitedPorts, depth);
             }
             return node.params.useTrue;
           } else {
             // Check if there's a connection to the "If False" port
             const falseConn = this.connections.find(c => c.to === node.inputs[3].id);
             if (falseConn) {
-              return this.evaluatePort(falseConn.from, x, y, z);
+              return this.evaluatePort(falseConn.from, x, y, z, visitedPorts, depth);
             }
             return node.params.useFalse;
           }
@@ -533,9 +724,18 @@ class NodeGraph {
   /**
    * Convert the graph to Lua code
    * 
-   * @returns {string} - Lua code for the terrain generation
+   * @returns {Object} - Lua code and validation results
    */
   exportToLua() {
+    // Validate the graph before exporting
+    const validationResult = this.validateGraph();
+    if (!validationResult.valid) {
+      return {
+        code: null,
+        valid: false,
+        errors: validationResult.errors
+      };
+    }
     let luaCode = `-- Luamap generated terrain\n`;
     luaCode += `luamap.set_singlenode()\n\n`;
     
@@ -684,7 +884,160 @@ class NodeGraph {
     luaCode += `    return content\n`;
     luaCode += `end\n`;
     
-    return luaCode;
+    // Verify the generated code by performing a basic syntax check
+    const syntaxErrors = this.checkLuaSyntax(luaCode);
+    
+    return {
+      code: luaCode,
+      valid: syntaxErrors.length === 0,
+      errors: syntaxErrors,
+      warnings: []
+    };
+  }
+  
+  /**
+   * Validate the graph before export
+   * 
+   * @returns {Object} - Validation result
+   */
+  validateGraph() {
+    const errors = [];
+    
+    // Check if there's an output node
+    const outputNode = this.getOutputNode();
+    if (!outputNode) {
+      errors.push("No terrain output node found in the graph");
+    } else {
+      // Check if the output node is connected
+      const connection = this.connections.find(conn => conn.to === outputNode.inputs[0].id);
+      if (!connection) {
+        errors.push("Terrain output node is not connected to any terrain source");
+      }
+    }
+    
+    // Check for disconnected input ports that are required
+    for (const node of this.nodes) {
+      // Skip checking nodes with no inputs
+      if (node.inputs.length === 0) continue;
+      
+      for (const input of node.inputs) {
+        // Skip the if-true and if-false ports of compare nodes as they're optional
+        if (node.type === 'compare' && (input.name === 'If True' || input.name === 'If False')) {
+          continue;
+        }
+        
+        // Check if this input is connected
+        const connected = this.connections.some(conn => conn.to === input.id);
+        if (!connected) {
+          errors.push(`Node ${node.id} (${node.type}) has disconnected input: ${input.name}`);
+        }
+      }
+    }
+    
+    // Check for nodes that aren't contributing to the output
+    const usedNodes = new Set();
+    if (outputNode) {
+      this.findConnectedNodes(outputNode.id, usedNodes);
+    }
+    
+    for (const node of this.nodes) {
+      if (!usedNodes.has(node.id) && node.type !== 'terrain-output') {
+        errors.push(`Node ${node.id} (${node.type}) is not connected to the output`);
+      }
+    }
+    
+    return {
+      valid: errors.length === 0,
+      errors
+    };
+  }
+  
+  /**
+   * Find all nodes connected to a given node
+   * 
+   * @param {number} nodeId - ID of the node to start from
+   * @param {Set} usedNodes - Set of used node IDs
+   */
+  findConnectedNodes(nodeId, usedNodes) {
+    if (usedNodes.has(nodeId)) return;
+    usedNodes.add(nodeId);
+    
+    const node = this.nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    
+    // Find all input connections to this node
+    for (const input of node.inputs) {
+      const conn = this.connections.find(c => c.to === input.id);
+      if (conn) {
+        const fromNodeId = this.getNodeIdFromPortId(conn.from);
+        if (fromNodeId) {
+          this.findConnectedNodes(fromNodeId, usedNodes);
+        }
+      }
+    }
+  }
+  
+  /**
+   * Check Lua syntax for basic errors
+   * 
+   * @param {string} luaCode - Lua code to check
+   * @returns {Array} - Array of syntax errors
+   */
+  checkLuaSyntax(luaCode) {
+    const errors = [];
+    
+    // Check for basic syntax errors
+    try {
+      // Check for unbalanced parentheses
+      let parenCount = 0;
+      let braceCount = 0;
+      
+      for (let i = 0; i < luaCode.length; i++) {
+        const char = luaCode[i];
+        if (char === '(') parenCount++;
+        else if (char === ')') parenCount--;
+        else if (char === '{') braceCount++;
+        else if (char === '}') braceCount--;
+        
+        if (parenCount < 0) {
+          errors.push(`Syntax error: Extra closing parenthesis at position ${i}`);
+          break;
+        }
+        if (braceCount < 0) {
+          errors.push(`Syntax error: Extra closing brace at position ${i}`);
+          break;
+        }
+      }
+      
+      if (parenCount > 0) {
+        errors.push(`Syntax error: ${parenCount} unclosed parentheses`);
+      }
+      if (braceCount > 0) {
+        errors.push(`Syntax error: ${braceCount} unclosed braces`);
+      }
+      
+      // Check for missing 'end' keywords in function definitions
+      const functionCount = (luaCode.match(/function\s+/g) || []).length;
+      const endCount = (luaCode.match(/\bend\b/g) || []).length;
+      
+      if (functionCount > endCount) {
+        errors.push(`Syntax error: Missing ${functionCount - endCount} 'end' keyword(s) for function definitions`);
+      } else if (endCount > functionCount) {
+        errors.push(`Syntax error: Extra ${endCount - functionCount} 'end' keyword(s)`);
+      }
+      
+      // Check for missing 'then' keywords in if statements
+      const ifCount = (luaCode.match(/\bif\s+/g) || []).length;
+      const thenCount = (luaCode.match(/\bthen\b/g) || []).length;
+      
+      if (ifCount > thenCount) {
+        errors.push(`Syntax error: Missing ${ifCount - thenCount} 'then' keyword(s) for if statements`);
+      }
+    } catch (e) {
+      errors.push(`Error checking syntax: ${e.message}`);
+    }
+    
+    return errors;
   }
   
   /**

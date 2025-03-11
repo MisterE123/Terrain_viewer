@@ -1715,8 +1715,36 @@ class LuamapPrototyper {
   
   exportToLua() {
     try {
-      const luaCode = this.nodeGraph.exportToLua();
-      document.getElementById('export-code').value = luaCode;
+      const result = this.nodeGraph.exportToLua();
+      
+      if (!result.valid) {
+        // Show validation errors
+        let errorMessage = 'Failed to export Lua code:\n';
+        result.errors.forEach(error => {
+          errorMessage += `- ${error}\n`;
+        });
+        
+        console.error("Export validation failed:", result.errors);
+        showToast('Export failed. Check the graph for errors.', 'error');
+        
+        // Show error details in a modal
+        document.getElementById('export-code').value = errorMessage;
+        document.getElementById('export-modal').style.display = 'flex';
+        return;
+      }
+      
+      // Show warnings if there are any
+      if (result.warnings && result.warnings.length > 0) {
+        let warningMessage = 'Export succeeded with warnings:\n';
+        result.warnings.forEach(warning => {
+          warningMessage += `- ${warning}\n`;
+        });
+        console.warn("Export warnings:", result.warnings);
+        showToast('Export succeeded with warnings', 'warning');
+      }
+      
+      // Set the code in the export modal
+      document.getElementById('export-code').value = result.code;
       document.getElementById('export-modal').style.display = 'flex';
       showToast('Lua code generated successfully', 'success');
     } catch (error) {
