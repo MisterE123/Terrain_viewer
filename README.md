@@ -1,3 +1,5 @@
+License Gnu Affero General Public License
+
 # Luamap Terrain Prototyper
 
 An interactive web application for prototyping terrain generation algorithms for Luanti/Minetest mapgens using Luamap.
