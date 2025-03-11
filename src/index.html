@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luamap Terrain Prototyper</title>
+  <link rel="stylesheet" href="./styles/main.css">
+</head>
+<body>
+  <header>
+    <h1>Luamap Terrain Prototyper</h1>
+    <div class="header-buttons">
+      <button id="btn-new">New</button>
+      <button id="btn-export">Export to Lua</button>
+      <button id="btn-help">Help</button>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <div class="sidebar" id="sidebar">
+      <h2>Nodes</h2>
+      
+      <h3>Noise</h3>
+      <div class="node-list">
+        <div class="node-item" data-type="noise2d">Noise 2D</div>
+        <div class="node-item" data-type="noise3d">Noise 3D</div>
+        <div class="node-item" data-type="mandelbrot">Mandelbrot</div>
+      </div>
+      
+      <h3>Operations</h3>
+      <div class="node-list">
+        <div class="node-item" data-type="lerp">Lerp</div>
+        <div class="node-item" data-type="coserp">Coserp</div>
+        <div class="node-item" data-type="add">Add</div>
+        <div class="node-item" data-type="multiply">Multiply</div>
+        <div class="node-item" data-type="subtract">Subtract</div>
+        <div class="node-item" data-type="abs">Absolute Value</div>
+        <div class="node-item" data-type="gaussian">Gaussian</div>
+        <div class="node-item" data-type="remap">Remap Range</div>
+      </div>
+      
+      <h3>Position</h3>
+      <div class="node-list">
+        <div class="node-item" data-type="position">Position (X,Y,Z)</div>
+        <div class="node-item" data-type="distance">Distance to Point</div>
+      </div>
+      
+      <h3>Terrain</h3>
+      <div class="node-list">
+        <div class="node-item" data-type="compare">Comparison</div>
+        <div class="node-item" data-type="terrain-type">Terrain Type</div>
+        <div class="node-item" data-type="terrain-output">Terrain Output</div>
+      </div>
+    </div>
+
+    <div class="editor-container">
+      <div class="tab-navigation">
+        <button class="tab-button active" data-tab="node-editor">Node Editor</button>
+        <button class="tab-button" data-tab="terrain-viewer">Terrain Viewer</button>
+      </div>
+      
+      <div class="editor-main">
+        <div id="node-editor">
+          <div class="node-container"></div>
+        </div>
+        
+        <div id="terrain-viewer">
+          <canvas id="terrain-canvas"></canvas>
+          
+          <div class="viewer-controls">
+            <div class="control-row">
+              <label>Resolution:</label>
+              <input type="number" id="resolution" min="16" max="256" value="64">
+            </div>
+            
+            <div class="control-row">
+              <label>Wireframe:</label>
+              <input type="checkbox" id="wireframe">
+            </div>
+            
+            <div class="control-row">
+              <button id="btn-center">Center View</button>
+            </div>
+            
+            <div class="control-row">
+              <label>Scale:</label>
+              <div class="scale-presets">
+                <div class="scale-preset" data-scale="16">16</div>
+                <div class="scale-preset" data-scale="256">256</div>
+                <div class="scale-preset" data-scale="4096">4096</div>
+                <div class="scale-preset" data-scale="60000">60000</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="export-modal" id="export-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Export to Lua</div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <textarea id="export-code" readonly></textarea>
+      <div class="modal-buttons">
+        <button id="btn-copy">Copy to Clipboard</button>
+        <button id="btn-close-modal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="help-panel" id="help-panel">
+    <div class="help-content">
+      <div class="help-header">
+        <h2>Luamap Terrain Prototyper Help</h2>
+        <button class="help-close">&times;</button>
+      </div>
+      
+      <h3>Node Editor Instructions</h3>
+      <ul>
+        <li><strong>Add nodes:</strong> Click on node types in the sidebar</li>
+        <li><strong>Move nodes:</strong> Drag node headers</li>
+        <li><strong>Connect nodes:</strong> Click output port (right) then input port (left)</li>
+        <li><strong>Delete connection:</strong> Click on the connection line</li>
+        <li><strong>Pan view:</strong> Hold middle mouse button or Space+drag</li>
+        <li><strong>Zoom:</strong> Use mousewheel or zoom buttons</li>
+      </ul>
+      
+      <h3>Terrain Generation Tips</h3>
+      <ul>
+        <li>Start with a Position node for height-based terrain</li>
+        <li>Use Noise nodes for natural-looking landscapes</li>
+        <li>Connect terrain outputs to the Terrain Output node</li>
+        <li>Use Compare nodes to create terrain transitions</li>
+      </ul>
+      
+      <h3>About Noise Types</h3>
+      <ul>
+        <li><strong>Noise 2D:</strong> Creates 2D value noise patterns</li>
+        <li><strong>Noise 3D:</strong> Creates 3D value noise patterns, useful for caves or floating islands</li>
+        <li><strong>Mandelbrot:</strong> Uses the Mandelbrot set for unique patterns</li>
+      </ul>
+      
+      <h3>About Terrain Viewer</h3>
+      <ul>
+        <li>3D view shows the terrain created by your node graph</li>
+        <li>Use the Resolution setting to control terrain detail</li>
+        <li>Toggle Wireframe mode to see inside caves or transparent areas</li>
+        <li>Scale presets let you quickly view different sized chunks of terrain</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="./index.js"></script>
+</body>
+</html>

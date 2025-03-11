@@ -1,0 +1,606 @@
+:root {
+  --panel-bg: #2a2a2a;
+  --main-bg: #1e1e1e;
+  --node-bg: #333333;
+  --node-selected: #555555;
+  --connector: #888888;
+  --connector-hover: #cccccc;
+  --grid-color: #333333;
+  --text-color: #e0e0e0;
+  --secondary-text: #aaaaaa;
+  --accent-color: #007acc;
+  --button-bg: #3a3a3a;
+  --button-hover: #4a4a4a;
+  --input-bg: #252525;
+  --header-bg: #252525;
+  --button-active: #0062a3;
+  --overlay-bg: rgba(0, 0, 0, 0.7);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--text-color);
+}
+
+body {
+  background-color: var(--main-bg);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+header {
+  background-color: var(--header-bg);
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #444;
+}
+
+h1 {
+  font-size: 18px;
+  margin-right: 20px;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  background-color: var(--button-bg);
+  border: none;
+  color: var(--text-color);
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+button:hover {
+  background-color: var(--button-hover);
+}
+
+button.active {
+  background-color: var(--button-active);
+}
+
+.main-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 250px;
+  background-color: var(--panel-bg);
+  padding: 10px;
+  border-right: 1px solid #444;
+  overflow-y: auto;
+}
+
+.sidebar h2 {
+  font-size: 16px;
+  margin-bottom: 10px;
+  color: var(--accent-color);
+}
+
+.sidebar h3 {
+  font-size: 14px;
+  margin: 15px 0 5px 0;
+  color: var(--secondary-text);
+}
+
+.node-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.node-item {
+  background-color: var(--node-bg);
+  padding: 6px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.node-item:hover {
+  background-color: var(--node-selected);
+}
+
+.editor-container {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+}
+
+.tab-navigation {
+  display: flex;
+  background-color: var(--header-bg);
+  border-bottom: 1px solid #444;
+}
+
+.tab-button {
+  padding: 8px 15px;
+  cursor: pointer;
+  font-size: 14px;
+  border: none;
+  background: transparent;
+}
+
+.tab-button.active {
+  background-color: var(--panel-bg);
+  border-bottom: 2px solid var(--accent-color);
+}
+
+.editor-main {
+  display: flex;
+  flex: 1;
+  position: relative;
+}
+
+#node-editor {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+  background-color: var(--panel-bg);
+  background-image: 
+    linear-gradient(var(--grid-color) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.node-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3000px;
+  height: 3000px;
+  transform-origin: 0 0;
+}
+
+#terrain-viewer {
+  flex: 1;
+  position: relative;
+  background-color: var(--panel-bg);
+  display: none;
+}
+
+#terrain-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.viewer-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 10px;
+  background-color: var(--overlay-bg);
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+input[type="number"], select {
+  background-color: var(--input-bg);
+  border: 1px solid #444;
+  border-radius: 3px;
+  padding: 4px 8px;
+  color: var(--text-color);
+  width: 70px;
+}
+
+.scale-presets {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.scale-preset {
+  padding: 3px 6px;
+  font-size: 12px;
+  background-color: var(--button-bg);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.scale-preset:hover {
+  background-color: var(--button-hover);
+}
+
+.node {
+  position: absolute;
+  background-color: var(--node-bg);
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  min-width: 180px;
+  user-select: none;
+  z-index: 10;
+}
+
+.node-header {
+  padding: 8px 10px;
+  background-color: var(--accent-color);
+  border-radius: 5px 5px 0 0;
+  cursor: move;
+  font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.node-delete {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #e63946;
+  border-radius: 4px;
+  color: #fff;
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 20px;
+  cursor: pointer !important;
+  user-select: none;
+  transition: background-color 0.2s, transform 0.1s;
+  z-index: 9999 !important; /* Ensure it's above everything */
+  position: relative;
+  margin-left: 5px;
+  pointer-events: auto !important;
+  outline: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.node-delete:hover {
+  background-color: #ff0000;
+  transform: scale(1.1);
+}
+
+.node-delete:active {
+  transform: scale(0.95);
+  background-color: #cc0000;
+}
+
+.node-content {
+  padding: 10px;
+}
+
+.ports-container {
+  margin-top: 10px;
+}
+
+.outputs-container {
+  border-top: 1px solid #444;
+  padding-top: 10px;
+  margin-top: 10px;
+}
+
+.port {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 5px 0;
+  height: 25px;
+  position: relative; /* For absolute positioning of connectors */
+}
+
+.port-label {
+  margin: 0 25px; /* Space for connectors on both sides */
+  font-size: 12px;
+  text-align: center;
+}
+
+.port-connector {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background-color: var(--connector);
+  cursor: pointer;
+  z-index: 20;
+  position: absolute; /* Absolute positioning for precise connection points */
+  top: 50%;
+  transform: translateY(-50%);
+  border: 2px solid var(--node-bg);
+  box-sizing: content-box;
+  transition: transform 0.1s, background-color 0.1s;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Position and style input connectors */
+.port-input {
+  left: 5px;
+  background-color: #4080cc;
+  border-radius: 4px;
+}
+
+/* Position and style output connectors */
+.port-output {
+  right: 5px;
+  background-color: #cc8040;
+  border-radius: 50%;
+}
+
+.port-type-float .port-connector.port-input {
+  background-color: #40cc80;
+  border-radius: 4px;
+}
+
+.port-type-float .port-connector.port-output {
+  background-color: #40cc80;
+  border-radius: 50%;
+}
+
+.port-type-terrain .port-connector.port-input {
+  background-color: #cc4080;
+  border-radius: 4px;
+}
+
+.port-type-terrain .port-connector.port-output {
+  background-color: #cc4080;
+  border-radius: 50%;
+}
+
+.port-connector:hover {
+  background-color: var(--connector-hover);
+  transform: scale(1.2);
+}
+
+.node-controls {
+  margin-top: 10px;
+}
+
+.control-group {
+  margin-bottom: 8px;
+}
+
+.control-label {
+  font-size: 12px;
+  margin-bottom: 3px;
+  color: var(--secondary-text);
+}
+
+.control-group input, .control-group select {
+  width: 100%;
+  padding: 4px 6px;
+  background-color: var(--input-bg);
+  border: 1px solid #444;
+  border-radius: 3px;
+  color: var(--text-color);
+  cursor: text;
+  z-index: 100;
+  pointer-events: auto !important;
+  position: relative;
+}
+
+.control-group input:hover, .control-group select:hover {
+  border-color: #666;
+}
+
+.control-group input:focus, .control-group select:focus {
+  border-color: var(--accent-color);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.25);
+}
+
+.control-group input[type="checkbox"] {
+  width: auto;
+  height: 16px;
+  margin-right: 5px;
+  cursor: pointer;
+}
+
+.control-group input[type="color"] {
+  height: 24px;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.connections-svg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.connection-path {
+  pointer-events: all !important;
+  cursor: pointer;
+  transition: stroke 0.2s;
+  stroke-width: 2px;
+}
+
+.connection-path:hover {
+  stroke: var(--connector-hover) !important;
+  stroke-width: 3px !important;
+}
+
+.temp-connection {
+  pointer-events: none !important;
+  stroke-width: 2px;
+}
+
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.select-wrapper::after {
+  content: "▼";
+  font-size: 10px;
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  border: 1px solid #444;
+  border-radius: 3px;
+  padding: 6px 8px;
+  width: 100%;
+  font-size: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+input[type="checkbox"] {
+  width: auto !important;
+  margin-right: 5px;
+}
+
+label {
+  cursor: pointer;
+}
+
+.zoom-controls {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 5px;
+  z-index: 10;
+}
+
+.zoom-button {
+  width: 30px;
+  height: 30px;
+  background-color: var(--button-bg);
+  border: none;
+  border-radius: 5px;
+  color: var(--text-color);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.zoom-button:hover {
+  background-color: var(--button-hover);
+}
+
+.export-modal, .help-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--overlay-bg);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  display: none;
+}
+
+.modal-content, .help-content {
+  background-color: var(--panel-bg);
+  width: 80%;
+  max-width: 800px;
+  max-height: 90%;
+  border-radius: 5px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+
+.modal-header, .help-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.modal-close, .help-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--secondary-text);
+}
+
+.modal-close:hover, .help-close:hover {
+  color: var(--text-color);
+}
+
+#export-code {
+  flex: 1;
+  background-color: var(--input-bg);
+  border: 1px solid #444;
+  border-radius: 3px;
+  padding: 10px;
+  font-family: monospace;
+  color: var(--text-color);
+  resize: none;
+  white-space: pre;
+  overflow: auto;
+  min-height: 300px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 15px;
+  gap: 10px;
+}
+
+.help-content h3 {
+  margin-top: 15px;
+  margin-bottom: 8px;
+  color: var(--accent-color);
+}
+
+.help-content ul {
+  padding-left: 25px;
+  margin-bottom: 15px;
+}
+
+.help-content li {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+#toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 10px 20px;
+  border-radius: 5px;
+  color: white;
+  z-index: 1000;
+  transition: opacity 0.5s;
+  opacity: 0;
+}

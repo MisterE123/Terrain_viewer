@@ -1,0 +1,88 @@
+The Luamap Terrain Prototyper is a specialized web-based application designed for creating and visualizing procedural terrain generation algorithms for Minetest (also known as Luanti). It provides a node-based visual programming interface that allows users to design complex terrain generation logic without writing code directly, then exports functional Lua code that can be used in Minetest mods.
+Core Components
+1. Node-Based Visual Programming Editor
+
+Node Categories:
+
+Noise: 2D and 3D noise generators, Mandelbrot set
+Operations: Mathematical operations (Add, Subtract, Multiply, Lerp, Coserp)
+Position: Spatial coordinates and distance calculations
+Terrain: Terrain type definitions, comparisons, and output
+
+
+Node Connection System:
+
+Connect output ports (right side) to input ports (left side)
+Automatic type checking ensures compatible connections
+Visual feedback with bezier curves showing data flow
+Click connections to delete them
+
+
+Parameter Controls:
+
+Each node type has specific configurable parameters
+Noise nodes: scale, spread, seed, octaves, persistence, lacunarity
+Comparison nodes: operators (<, >, ==, etc.), true/false outputs
+Terrain nodes: material type, color, properties
+
+
+
+2. Real-Time 3D Terrain Viewer
+
+3D Visualization: Shows the resulting terrain in real-time
+Controls:
+
+Resolution adjustment for detail level
+Wireframe toggle for seeing internal structure
+Scale presets (16, 256, 4096, 60000 units)
+Camera controls for panning, zooming, and rotating
+
+
+
+3. Lua Code Export
+
+Generates valid Luamap mod code from the visual graph
+Creates appropriate noise registrations
+Implements the terrain logic function
+Ready to use in Minetest/Luanti
+
+Technical Requirements
+
+Accurate Noise Implementation:
+
+Must precisely replicate Luanti's noise algorithms with all their specific behaviors
+
+
+Node Graph Editor:
+
+Pan and zoom capability
+Intuitive node placement and connection
+Real-time updates when parameters change
+
+
+Shader-Based Rendering:
+
+Efficient terrain visualization using WebGL/Three.js
+Support for different terrain materials and colors
+Wireframe mode for exploring internal structure
+
+
+Valid Lua Export:
+
+Generate syntactically correct Lua code
+Follow Luamap's API conventions
+Include all necessary helper functions
+
+
+
+Purpose and Workflow
+The tool streamlines the terrain generation prototyping process by:
+
+Allowing users to experiment with terrain algorithms visually
+Providing immediate feedback through the 3D viewer
+Eliminating the need to write code during the experimentation phase
+Enabling the creation of complex terrain features through node combinations
+Generating production-ready Lua code for Minetest/Luanti mods
+
+Examples shown in the images demonstrate how users can create height-based terrain by connecting position coordinates to comparison nodes, using noise to add variation, and defining different terrain types (stone, air) based on conditions.
+This tool bridges the gap between creative terrain design and technical implementation, making procedural terrain generation more accessible to Minetest mod developers.
